@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QCM Anatomie & Embryologie</title>
+    
+    <!-- Tailwind CSS pour le style -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    
+    <!-- Babel pour compiler le JSX dans le navigateur -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        /* Empêcher le zoom sur double tap sur iPad */
+        button { touch-action: manipulation; }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- ICONES (SVG intégrés pour compatibilité hors-ligne maximale) ---
+        const IconChevronRight = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>;
+        const IconChevronLeft = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>;
+        const IconCheckCircle = ({className}) => <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>;
+        const IconXCircle = ({className}) => <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>;
+        const IconCheck = ({className}) => <svg className={className} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>;
+        const IconX = ({className}) => <svg className={className} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>;
+        const IconAward = ({size=24}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>;
+        const IconHome = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>;
+        const IconRotate = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>;
+
+        // --- DONNEES DES 4 MODULES ---
+        const moduleCardio = [
+            { q: "1. Le foyer d'auscultion de la valve mitrale est situe dans:", o: ["A. 2/3 ème espace intercostal supra mamelonnaire", "B. 3/4 ème espace intercostal supra mamelonnaire", "C. 4/5ème espace intercostal sous mamelonnaire", "D. 5/6 ème espace intercostal sous mamelonnaire", "E. 6/7 ème espace intercostal sous mamelonnaire"], a: 2 },
+            { q: "2. Le foyer d'auscultion de la valve tricuspide est situe dans:", o: ["A. para-sternal droit au niveau du 4ème espace", "B. para-sternal gauche au niveau du 4ème espace", "C. para-sternal droit au niveau du 5ème espace", "D. para-sternal gauche au niveau du 5ème espace", "E. para-sternal droit au niveau du 3ème espace"], a: 1 },
+            { q: "3. Le foyer d'auscultion de la valve aortique est situe dans:", o: ["A. para-sternal droit 3ème espace", "B. para-sternal gauche 3ème espace", "C. para-sternal gauche 2ème espace", "D. para-sternal droit 2ème espace", "E. para-sternal droit 4ème espace"], a: 3 },
+            { q: "4. Le foyer d'auscultion de la valve pulmonaire est situe dans:", o: ["F. 2/3 ème espace intercostal supra mamelonnaire", "G. 3/4 ème espace intercostal supra mamelonnaire", "H. 4/5ème espace intercostal sous mamelonnaire", "I. 5/6 ème espace intercostal sous mamelonnaire", "J. 6/7 ème espace intercostal sous mamelonnaire"], a: 0 },
+            { q: "5. La cardiogenèse s'effectue suite à une série complexe d'évènements, sauf une:", o: ["A. détermination des cellules du mésoderme", "B. détermination des crêtes neurales pour le développement cardiaque", "C. processus de croissance et de différenciation en cardiomyocytes", "D. processus de migration et de transformation pour la formation du cœur", "E. processus de vasculogenese"], a: 4 },
+            { q: "6. La circulation sanguine devient fonctionnelle :", o: ["A. à la fin du 1er mois", "B. à la fin du 1er semaine", "C. à la fin du 2eme mois", "D. à la fin du 2eme semaine", "E. à la fin du 3eme mois"], a: 0 },
+            { q: "7. Les premières contractions cardiaques débutent vers :", o: ["A. au naissance", "B. 20 jours", "C. 24 jours", "D. 30 jours", "E. 60 jours"], a: 2 },
+            { q: "8. Le tube cardiaque présente les petites dilatations suivantes, sauf une :", o: ["A. le sinus veineux", "B. l'atrium primitif", "C. le ventricule primitif", "D. le bulbe artériel", "E. le ductus arteriosus"], a: 4 },
+            { q: "9. Chaque corne sinusale reçoit le sang à partir de les structures suivantes, sauf une:", o: ["A. la veine ombilicale", "B. le système veineux cardinal", "C. la veine commune cardinale", "D. la veine vitelline", "E. l'aorte dorsale"], a: 4 },
+            { q: "10. L'aorte définitive est formée à partir de quatre segments embryonnaires, sauf une :", o: ["A. dérivé du sac aortique", "B. dérivée du 4e arc aortique gauche", "C. provenant de la septième artère intersegmentaire gauche", "D. dérivée des segments somitiques 3 à 7 de l'aorte dorsale gauche", "E. provenant de la fusion des deux aortes dorsales"], a: 2 },
+            { q: "11. Concernant le système circulatoire, toutes les propositions suivantes sont exactes, sauf une:", o: ["A. La tunique externe des artères, ou adventice, este avasculaire", "B. Les veines et les artères présentent par endroits des valvules anti reflux", "C. Au niveau des membres inferieures, 1/10 seulement des sangs veineux circule dans le système superficiel", "D. Les vaisseaux lymphatiques possèdent des valvules semi-lunaires plus nombreuses que dans les veines", "E. Le système porte se draine dans le système cave inferieure par l'intermediare du foie"], a: 0 },
+            { q: "12. Concernant l'organogenese du cœur, toutes les propositions sont exactes, sauf une:", o: ["A. Le tube cardiaque initial provient de la réunion de cellules angiogenetique", "B. Les sinus veineux primitifs sont formes par la réunion des veines cardinales craniales et caudales", "C. Il existe initialement deux aortes dorsales", "D. L'aorte définitive provient du quatrième arc aortique gauche", "E. Le sinus veineux primitifs s'incorporrent progressivement dans l'atrium droite"], a: 1 },
+            { q: "13. Concernant le cœur, les propositions suivantes sont exactes, sauf une:", o: ["A. Le cœur est situé dans le médiastin moyen", "B. Le cœur est conique à base antérieure", "C. Son grand axe est oblique en avant, à gauche et en bas", "D. La partie horizontale du bord droit correspond au ventricule droit", "E. L'orifice pulmonaire est situé en avant et à gauche de l'orifice aortique"], a: 1 },
+            { q: "14. Concernant le cœur, les propositions suivantes sont exactes, sauf une:", o: ["A. La partie ventriculaire de la face sterno-costale est formée essentiellement du ventricule droit", "B. La face diaphragmatique repose sur le centre phrénique", "C. La face diaphragmatique est formée essentiellement du ventricule gauche", "D. Le sillon interventriculaire postérieur se termine à gauche de la veine cave inferieure", "E. La face pulmonaire répond aux vaisseaux pericardiaco-phréniques gauches"], a: 3 },
+            { q: "15. Concernant le cœur, les propositions suivantes sont exactes, sauf une:", o: ["A. L'apex du cœur est forme par le ventricule gauche", "B. Le bord droit sépare les faces sterno-costale et diaphragmatiques", "C. Le bord gauche sépare les faces diaphragmatique et pulmonaire", "D. La base du cœur est formée par les atria", "E. A droite du sillon inter-atrial s'ouvrent les ostia des veines caves supérieure et inferieure"], a: 2 },
+            { q: "16. Concernant les sillons du coeur:", o: ["A. Dans le sillon interventriculaire antérieur se trouve l'artère coronaire droite", "B. Dans le sillon interventriculaire antérieur se trouve la grande veine du cœur", "C. Dans le sillon interventriculaire postérieur se trouve la petite veine du cœur", "D. Dans le sillon coronaire droit se trouve le sinus coronaire", "E. Dans le sillon coronaire gauche se trouve la veine postérieure du ventricule gauche"], a: 1 },
+            { q: "17. Concernant l'atrium droit, les propositions suivantes sont exactes, sauf une:", o: ["A. Il est ovoïde à grand axe vertical", "B. Sa paroi supérieure correspond à l'orifice valvulaire de la veine cave supérieure", "C. L'ostium de la veine cave inferieure présente la valve d'Eustache", "D. L'ostium du sinus coronaire présente la valve de Thébésius", "E. Sa face antérieure correspond a l'ostium atrio-ventriculaire droit"], a: 0 },
+            { q: "18. Concernant l'atrium droit, les propositions suivantes sont exactes, sauf une:", o: ["A. Sa face latérale est marquée par les muscles pectinés", "B. Sa face médiale présente la fosse ovale", "C. L'orifice de la VCI se trouve en avant et à gauche de l'orifice du sinus coronaire", "D. Le limbus de la fosse ovale se trouve en haut, en avant et en bas", "E. Les bords droits des ostia caves sont unis par la crête terminale"], a: 2 },
+            { q: "19. Concernant le ventricule droit, les propositions suivantes sont exactes, sauf une:", o: ["A. Il a la forme d'un cône avec deux parois", "B. Sa paroi antérieure répond a la face sterno-costale du cœur", "C. Sur sa paroi septale se trouve la crête supraventriculaire", "D. La trabécule septomarginale solidarise les parois ventriculaires", "E. Sa paroi postérieure répond à la face diaphragmatique du cœur"], a: 0 },
+            { q: "20. Concernant l'atrium gauche, les propositions suivantes sont exactes, sauf une:", o: ["A. Sa paroi gauche présente les muscles pectinés", "B. Sa paroi médiale présente la valvule du foramen ovale", "C. Les parois supérieure et inferieure sont lisses et étroites", "D. Sa paroi postérieure est percée des quatre ostia des veines pulmonaires", "E. Sa paroi antérieur correspond a l'ostium atrio-ventriculaire gauche"], a: 0 },
+            { q: "21. Concernant le ventricule gauche, les propositions suivantes sont exactes, sauf une:", o: ["A. Il a la forme d'un cône avec deux parois", "B. Sa paroi droite est constituée du septum interventriculaire", "C. Sa base présente l'ostium aortique", "D. Son bord antérieur donne insertion au muscle papillaire antérieur", "E. Il présente une chambre gauche d'éjection"], a: 2 },
+            { q: "22. Concernant les ostia atrio-ventriculaires:", o: ["A. L'ostium atrio-ventriculaire droit est pourvu de la valve mitrale", "B. L'ostium atrio-ventriculaire gauche est pourvu de la valve tricuspide", "C. La valve mitrale est constituée des cuspides antérieure et postérieure", "D. Chaque cuspide donne insertion à des muscles papillaires", "E. L'ostium atrio-ventriculaire droit regarde à droit et légèrement en avant"], a: 2 },
+            { q: "23. Concernant les cavités ventriculaires:", o: ["A. La chambre de réception du VD est située en regard de l'ostium pulmonaire", "B. La chambre d'éjection du VD est située en regard de l'ostium AV droit", "C. La chambre de réception du VG est située en regard de l'ostium aortique", "D. La chambre d'éjection du VG est située en regard de l'ostium AV gauche", "E. Les chambres du VD sont séparées par la trabecule septomarginale et la valvule septale"], a: 4 },
+            { q: "24. Concernant l'ostium du tronc pulmonaire:", o: ["A. Il est situe au-dessous de l'ostium atrio-ventriculaire droit", "B. Il est situe à droite de l'ostium atrio-ventriculaire droit", "C. Il regarde en haut, à gauche et en avant", "D. Il possède deux valvules semi-lunaires", "E. Chaque valvule possède sur son bord libre un nodule fibreux"], a: 2 },
+            { q: "25. Concernant l'ostium de l'aorte:", o: ["A. Il est situe au-dessous de l'ostium atrio-ventriculaire gauche", "B. Il est situe à droite de l'ostium atrio-ventriculaire gauche", "C. Il regarde en haut, à gauche et en arrière", "D. Il est pourvu de deux valvules semi-lunaires", "E. Les valvules sont cupuliformes, à concavité inferieure"], a: 1 },
+            { q: "26. Concernant les artères coronaires, les propositions suivantes sont exactes, sauf une:", o: ["A. Elles sont les premières branches de l'aorte ascendante", "B. Elles sont situées sous l'épicarde", "C. Leurs branches terminales présentent des anastomoses sous-épicardiques d'une grande valeur fonctionnelle", "D. Le calibre de l'artère coronaire gauche est habituellement plus gros", "E. Elles sont situées dans les sillons de la surface du cœur"], a: 2 },
+            { q: "27. Concernant l'artère coronaire droite, les propositions suivantes sont exactes, sauf une:", o: ["A. Elle nait au-dessus de la valvule semi-lunaire droite de l'aorte", "B. Elle passe entre le tronc pulmonaire et l'auricule droit", "C. Elle gagne le sillon interventriculaire postérieur", "D. Elle s'anastomose avec l'artère interventriculaire antérieure", "E. Elle donne l'artère circonflexe"], a: 4 },
+            { q: "28. L'artère coronaire droite donne les branches suivantes, sauf une:", o: ["A. L'artère du nœud sinu-atrial", "B. Les branches septales interventriculaires antérieures", "C. La branche atriale intermédiaire", "D. La branche retro-ventriculaire", "E. L'artère du nœud atrio-ventriculaire"], a: 1 },
+            { q: "29. L'artère circonflexe donne les branches suivantes, sauf une:", o: ["A. L'artère du nœud atrio-ventriculaire", "B. L'artère marginale gauche", "C. La branche atriale intermédiaire", "D. La branche postérieure du ventricule gauche", "E. L'artère atriale postérieure pour l'atrium gauche"], a: 0 },
+            { q: "30. Concernant le sinus coronaire, les propositions suivantes sont exactes, sauf une:", o: ["A. Il s'ouvre dans l'atrium droit", "B. Son ostium est pourvu de la veine de Thébésius", "C. Il reçoit la veine oblique de l'atrium gauche", "D. Il reçoit la veine moyenne du cœur", "E. Il reçoit les veines antérieures du cœur"], a: 4 },
+            { q: "31. Concernant les veines du cœur, les propositions suivantes sont exactes, sauf une:", o: ["A. La veine postérieure du ventricule gauche s'ouvre dans le sinus coronaire", "B. La grande veine du cœur chemine dans le sillon interventriculaire antérieur", "C. Elle se termine dans l'extrémité gauche du sinus coronaire", "D. Les veines minimes du cœur s'ouvrent dans le sinus coronaire", "E. La veine moyenne du cœur parcourt le sillon interventriculaire postérieur"], a: 3 },
+            { q: "32. Concernant l'aorte ascendante, les propositions suivantes sont exactes, sauf une:", o: ["A. Elle commence par le bulbe aortique (sinus de Valsalva)", "B. Elle se dirige obliquement en haut, en avant et à droite", "C. Elle se termine au niveau de l'articulation sterno-claviculaire droite", "D. Elle est contenue dans la même gaine épicardique que le tronc pulmonaire", "E. Elle donne les artères coronaires"], a: 2 },
+            { q: "33. Concernant la veine cave supérieure, les propositions suivantes sont exactes, sauf une:", o: ["A. Elle est formée de l'union des deux veines brachio-céphaliques droite et gauche", "B. Elle nait au niveau du premier cartilage costal droit", "C. Elle se termine au niveau du 2e espace intercostal droit", "D. Elle s'ouvre sur la paroi postérieure de l'atrium droit", "E. Elle présente une légère courbure à convexité droite"], a: 2 },
+            { q: "34. La veine cave supérieure a les rapports suivants, sauf un:", o: ["A. En avant - le thymus", "B. En arrière - le pédicule pulmonaire droit", "C. A gauche - le tronc pulmonaire", "D. A droite - le nerf phrénique droit", "E. A droit - la plèvre médiastinale droite"], a: 2 },
+            { q: "35. Concernant la veine azygos, les propositions suivantes sont exactes, sauf une:", o: ["A. Elle fait suite à la veine lombaire ascendante droite", "B. Elle pénètre dans le thorax à travers le même orifice que le nerf phrénique droit", "C. Elle suit les faces latérales droites des corps vertébraux", "D. L'arc de la veine azygos se trouve au niveau du 3e espace intercostal droit", "E. Elle passe au-dessus de la bronche principale droite"], a: 1 },
+            { q: "36. La veine azygos a les rapports suivants, sauf un:", o: ["A. A gauche - le conduit thoracique", "B. A droite - l'œsophage", "C. En arrière - les vaisseaux intercostaux droits", "D. En avant - le ligament pulmonaire droit", "E. L'arc surcroise l'artère pulmonaire droite"], a: 3 },
+            { q: "37. La veine azygos reçoit les veines affluentes suivantes, sauf une:", o: ["A. La veine brachio-céphalique droite", "B. La veine intercostale supérieure droite", "C. Les veines intercostales postérieures droites", "D. La veine hémi-azygos", "E. La veine hémi-azygos accessoire"], a: 0 },
+            { q: "38. Concernant le tronc pulmonaire, les propositions suivantes sont exactes, sauf une:", o: ["A. Il est à l'origine de la circulation afférente des poumons", "B. Il se détache de la base du ventricule gauche", "C. Il fait suite au cône artériel", "D. Il se dirige obliquement en haut, à gauche et en arrière", "E. Il se divise en deux branches: les artères pulmonaires"], a: 1 },
+            { q: "39. La partie péricardique du tronc pulmonaire a les rapports suivants, sauf un:", o: ["A. En avant - le plexus cardiaque", "B. En avant - l'artère du cône artériel", "C. A gauche - l'auricule gauche", "D. En arrière - le sinus transverse du péricarde", "E. A droite - la veine cave supérieure"], a: 4 },
+            { q: "40. Concernant l'artère pulmonaire droite, les propositions suivantes sont exactes, sauf une:", o: ["A. Elle est la plus volumineuse et la plus longue", "B. Elle est située derrière l'aorte ascendante", "C. Elle est située avant la veine cave supérieure", "D. Elle est située au-dessous de l'arc aortique", "E. Elle est située en avant de la bifurcation trachéale"], a: 2 },
+            { q: "41. Le sinus transverse du péricard est limité par les éléments suivants, sauf un:", o: ["A. En avant - l'aorte ascendante", "B. En arrière - la trachée", "C. En haut - l'artère pulmonaire droite", "D. Son orifice droit - l'auricule droite, la VCI et l'aorte ascendante", "E. Son orifice gauche - le tronc pulmonaire, l'auricule gauche et l'atrium gauche"], a: 1 },
+            { q: "42. Concernant le péricarde fibreux, les propositions suivantes sont exactes, sauf une:", o: ["A. Il est solidaire de la lame pariétale du péricarde séreux", "B. Il se continue avec l'adventice des gros vaisseaux", "C. Sa base est fixe au diaphragme par le ligament phrénico-péricardique", "D. Sa face antérieure est en rapport avec le sternum", "E. Son sommet correspond à l'apex du cœur"], a: 4 },
+            { q: "43. L'oreillette gauche embryonnaire est presque exclusivement représentée sur le cœur adulte par :", o: ["A. l'auricule gauche a parois trabeculées, tandis que les zones à parois lisses proviennent des veines pulmonaires", "B. l'auricule droite a parois trabeculées, tandis que les zones à parois lisses proviennent des veines pulmonaires", "C. ventricule gauche", "D. ventricule droite", "E. oreillettes gauche et droite"], a: 0 },
+            { q: "44. L'oreillette droite embryonnaire primitive constituera :", o: ["A. l'auricule droite", "B. l'auricule gauche", "C. le ventricule gauche", "D. le ventricule droit", "E. les oreillettes gauche et droite"], a: 0 },
+            { q: "45. La partie supérieure du bulbe cordis devient :", o: ["A. cône et tronc artériel", "B. l'auricule droite", "C. le ventricule gauche", "D. le ventricule droit", "E. les oreillettes gauche et droite"], a: 0 },
+            { q: "46. La contraction automatique du cœur est initiée par :", o: ["A. Le noeud auriculo-ventriculaire", "B. Le nœud sinusal", "C. Le système nerveux autonome", "D. Le nœud de Keith et Flack", "E. Les faisceaux des Purkinje"], a: 1 },
+            { q: "47. Les valvules sigmoïdes:", o: ["A. S'ouvrent quand la pression du sang dans l'artère dépasse celle dans le ventricule", "B. Sont des dispositifs contractiles", "C. Empêchent le reflux du sang du ventricule vers l'artère", "D. Se trouvent à l'entrée de l'aorte et de l'artère pulmonaire", "E. Se trouvent dans les orifices atrioventriculaires"], a: 3 },
+            { q: "48. L'aorte définitive est donc formée à partir de quatre segments embryonnaires, sauf une :", o: ["A. le premier, entre la valve aortique et la carotide primitive gauche, dérivé du sac aortique", "B. le premier, dérivé du sinus coronarien", "C. le second, entre la carotide primitive gauche et l'origine du canal artériel, dérivée du 4e arc aortique gauche", "D. le troisième, entre l'origine du canal artériel et l'artère sous-clavière gauche, dérivée des segments 3 à 7", "E. le quatrième, au-dessous de l'artère sous-clavière gauche, provenant de la fusion des deux aortes dorsales"], a: 1 },
+            { q: "49. Le bord inférieur du septum secundum est appelé :", o: ["A. crista dividens", "B. crista terminalis", "C. septum spurium", "D. septum primum", "E. la crete du Parchappe"], a: 0 },
+            { q: "50. Le corne gauche du sinus régresse, sauf pour:", o: ["A. La partie distale reste chez l'adulte comme le sinus coronaire", "B. La partie distale reste chez l'adulte comme la veine oblique (de Marshall)", "C. La veine commune cardinale", "D. Le Sinus auriculaire", "E. La veine ombilicale"], a: 0 }
+        ];
+
+        const moduleRespi = [
+            { q: "1. Concernant le diaphragme, les propositions suivantes sont exactes, sauf une:", o: ["A. A l'expiration, le faîte de la coupole droite répond au 4e espace intercostal", "B. A l'expiration, le faîte de la coupole gauche répond au 5e espace intercostal", "C. A l'inspiration, les coupoles descendent de deux espaces intercostaux", "D. Il est formé d'une zone centrale, charnue et d'une zone périphérique tendineuse", "E. Il peut être considéré comme un assemblage de petits muscles digastriques"], a: 3 },
+            { q: "2. Concernant le diaphragme:", o: ["A. Il forme une double coupole à concavité inferieure", "B. Le centre phrénique est une aponévrose très épaisse", "C. Les folioles sont: droite, gauche, dorsale", "D. A l'union des folioles droite et gauche se trouve le foramen de la veine cave inferieure", "E. Le hiatus œsophagien est cerné par les bandelettes semi-circulaires"], a: 2 },
+            { q: "3. Concernant le diaphragme:", o: ["A. La bandelette semi-circulaire supérieure est tendue entre les folioles ventrale et gauche", "B. La bandelette semi-circulaire supérieure passe en avant du foramen de la veine cave inferieure", "C. La bandelette semi-circulaire inferieure est tendue entre les folioles droite et gauche", "D. La bandelette semi-circulaire inférieure passe en arrière du foramen de la veine cave inferieure", "E. Les bandelettes semi-circulaires limitent en même temps les trois hiatus du diaphragme: œsophagien, aortique et celui de la veine cave inferieure"], a: 0 },
+            { q: "4. Concernant les insertions du diaphragme:", o: ["A. Les faisceaux de la partie sternale s'insèrent sur la face postérieure du corps du sternum", "B. Les insertions de la partie costale s'imbriquent avec celles du muscle oblique externe de l'abdomen", "C. Le ligament arqué latéral est tendu au-dessus du muscle psoas majeur", "D. Le ligament arqué latéral est tendu entre le processus costiforme de L1 et l'apex de la 12e côte", "E. Le ligament arqué accessoire unit les processus costiformes des vertebres L1 et L2"], a: 0 },
+            { q: "5. Concernant la partie lombaire du diaphragme:", o: ["A. Le pilier gauche se fixe sur les corps vertébraux L1-L3", "B. Le ligament arqué médian se trouve en regard de la vertèbre thoracique T12", "C. Le ligament arqué médian limite en avant le hiatus œsophagien", "D. Le ligament arqué médian limite en en arrière le hiatus aortique", "E. Le ligament arqué médial passe au-dessus du muscle carré des lombes"], a: 4 },
+            { q: "6. Concernant le foramen de la veine cave inferieure:", o: ["A. Il se trouve entre la foliole droite et gauche", "B. Il se projette au niveau de T10", "C. Il est traversé par le nerf grand splanchnique", "D. Il est traversé par des branches du nerf phrénique droit", "E. Il est situé au milieu des fibres charnues"], a: 0 },
+            { q: "7. Concernant les orifices du diaphragme, les propositions suivantes sont exactes, sauf une:", o: ["A. Le foramen de la veine cave inferieure se projette au niveau du disque intervertébral T8-T9", "B. Le hiatus œsophagien se projette au niveau de T10", "C. Le hiatus aortique est limite derrière par la vertèbre T12", "D. Le trigone sterno-costal livre passage à l'artère musculo-phrenique", "E. Le trigone lombo-costal fait communiquer les espaces pararenal et sous-pleural"], a: 0 },
+            { q: "8. Concernant les orifices du diaphragme:", o: ["A. Le hiatus aortique livre passage au nerf vague droit", "B. Le trigone lombo-costal livre passage à la veine lombaire ascendante", "C. Derrière le ligament arqué médial passe le tronc sympathique", "D. Le hiatus œsophagien livre passage aussi au conduit thoracique", "E. Le foramen de la veine cave inferieure livre passage aussi au nerf petit splanchnique"], a: 1 },
+            { q: "9. Le diaphragme est vascularisé par les artères suivantes, sauf une:", o: ["A. Pericardiaco-phrénique", "B. Phrénique supérieure", "C. Épigastrique supérieure", "D. Dernières cinq intercostales", "E. Phréniques inferieures"], a: 2 },
+            { q: "10. Concernant l'anatomie fonctionnelle du diaphragme, les propositions suivantes sont exactes, sauf une:", o: ["A. Le diaphragme est le muscle essentiel de l'inspiration", "B. Durant l'inspiration le diaphragme s'aplatit et s'abaisse", "C. Durant l'inspiration l'ouverture inferieure du thorax s'agrandit", "D. Les muscles intercostaux externes sont des antagonistes du diaphragme", "E. Durant l'expiration, les muscles agonistes du diaphragme sont les intercostaux internes"], a: 4 },
+            { q: "11. La trachée:", o: ["A. Est située entièrement dans le thorax", "B. Elle descend légèrement en avant et à gauche", "C. C'est un tube cylindrique aplati sur sa face antérieure", "D. La bifurcation trachéale forme un angle d'environ 40°", "E. Le dernier cartilage trachéal s'appelle la carina de la trachée"], a: 0 },
+            { q: "12. Les rapports de la trachée thoracique sont les suivants, sauf un:", o: ["A. En avant - la veine brachio-céphalique gauche", "B. En arrière - l'œsophage", "C. A droite - l'arc aortique", "D. A droite - la veine cave supérieure", "E. A gauche - le nerf laryngé récurrent gauche"], a: 3 },
+            { q: "13. Concernant les bronches principales, les propositions suivantes sont exactes, sauf une:", o: ["A. La bronche principale droite est presque verticale", "B. La bronche principale gauche est plus étroite que celle droite", "C. La bronche principale droite répond en avant au nerf vague droit", "D. La bronche principale droite est surcroisée par l'arc de la veine azygos", "E. La bronche principale gauche répond en arrière à l'aorte thoracique"], a: 2 },
+            { q: "14. Concernant la trachée et les bronches, les propositions suivantes sont exactes, sauf une:", o: ["A. Elles sont irriguées par les artères thymiques et bronchiques", "B. Les veines se drainent dans le plexus veineux thyroïdien inferieur", "C. Les nerfs sont issus des nerfs vagues et des troncs sympathiques", "D. Le parasympathique est bronchodilatateur", "E. Les lymphatiques se drainent dans les nœuds lymphatiques trachéaux"], a: 0 },
+            { q: "15. Concernant le poumon, les propositions suivantes sont exactes, sauf une:", o: ["A. Il a une forme conique avec trois faces, trois bords et un apex", "B. La face costale présente les scissures interlobaires", "C. La face médiale présente une portion vertébrale", "D. Le hile pulmonaire est situé plus près du bord antérieur", "E. L'apex fait saillit au-dessus de l'ouverture supérieure du thorax"], a: 3 },
+            { q: "16. Concernant les impressions de la partie mediastinale du poumon droit (par rapport au hile pulmonaire), les propositions suivantes sont exactes, sauf une:", o: ["A. En avant et en bas - l'impression cardiaque", "B. En avant - la trachée", "C. Au dessus - l'arc de la veine azygos", "D. Au-dessus - la veine brachio-céphalique droite", "E. En arrière - la veine azygos"], a: 3 },
+            { q: "17. Concernant les impressions de la partie mediastinale du poumon gauche (par rapport au hile pulmonaire), les propositions suivantes sont exactes, sauf une:", o: ["A. En avant et en bas - l'impression cardiaque", "B. Au-dessus - l'arc aortique", "C. Au-dessus - la trachée", "D. En arrière - l'œsophage", "E. En arrière - l'aorte"], a: 2 },
+            { q: "18. L'apex du poumon a les rapports suivants, sauf un:", o: ["A. En avant - l'artère subclavière", "B. En avant - le muscle scalène antérieur", "C. En arrière - le col de la première côte", "D. En arrière - le ganglion cervico-thoracique", "E. Médialement, à droite - le conduit thoracique"], a: 4 },
+            { q: "19. Concernant les poumons, les propositions suivantes sont exactes, sauf une:", o: ["A. Chaque poumon est divisé en lobes par des scissures", "B. La plèvre pariétale s'insinue dans les scissures", "C. Chaque lobe est subdivisé en des segments pulmonaires", "D. Chaque segment est ventilé par une bronche segmentaire", "E. La veine intersegmentaire draine les deux segments adjacents"], a: 1 },
+            { q: "20. Concernant les plèvres, les propositions suivantes sont exactes, sauf une:", o: ["A. Chaque plèvre est constituée de deux feuillets: pulmonaire et pariétale", "B. Les deux feuillets se continuent au niveau des bords du poumon", "C. Au-dessous du hile, elles forment le ligament pulmonaire", "D. La coupole pleurale dépasse en avant la première cote", "E. La membrane supra-pleurale donne insertion aux ligaments vertébro-pleural et costo-pleural"], a: 1 },
+            { q: "21. Concernant le développement de l'appareil respiratoire, le poumon se met en place:", o: ["A. à partir de la 2e semaine du développement", "B. à partir de la 3e semaine du développement", "C. à partir de la 4e semaine du développement", "D. à partir de la 5e semaine du développement", "E. à partir de la 6e semaine du développement"], a: 2 },
+            { q: "22. L'origine des cellules qui participent à la constitution de l'appareil respiratoire est :", o: ["A. entoblastique", "B. mesoblastique", "C. ectoblastique", "D. entoblastique et mesoblastique", "E. ectoblastique et mesoblastique"], a: 3 },
+            { q: "23. Concernant le mésoblaste (splanchnopleure qui entoure l'intestin antérieur), il va former le structures suivantes, sauf une :", o: ["A. le cartilage des voies aériennes de conduction", "B. les cellules musculaires lisses", "C. les tissus sanguins et lymphatiques", "D. le tissu interstitiel (différentes formes de tissus conjonctifs)", "E. le revêtement épithélial de la trachée, des bronches et des alvéoles"], a: 4 },
+            { q: "24. Lors de la naissance, la bifurcation trachéale se trouve :", o: ["A. en regard de la 1ere vertèbre thoracique", "B. en regard de la 2eme vertèbre thoracique", "C. en regard de la 3eme vertèbre thoracique", "D. en regard de la 4eme vertèbre thoracique", "E. en regard de la 5eme vertèbre thoracique"], a: 2 },
+            { q: "25. Les stades du développement du poumon sont les suivantes, sauf une:", o: ["A. pseudo-glandulaire", "B. canaliculaire", "C. sacculaire", "D. bronchiolaire", "E. alvéolaire"], a: 3 },
+            { q: "26. La maturation pulmonaire se poursuit :", o: ["A. pendant la petite enfance", "B. pendant l'enfance", "C. pendant la préadolescence", "D. pendant l'adolescence", "E. pendant la perioade d'adulte"], a: 1 },
+            { q: "27. Les premiers battements ciliaires apparaissent au pôle apical des cellules ciliées :", o: ["A. A partir de la 4e semaine du développement", "B. A partir de la 10e semaine du développement", "C. A partir de la 12e semaine du développement", "D. A partir de la 16e semaine du développement", "E. A partir de la 32e semaine du développement"], a: 1 },
+            { q: "28. Concernant le liquide pulmonaire, les propositions suivantes sont correctes sauf une :", o: ["A. L'arbre respiratoire est vide", "B. Le liquide pulmonaire est sécrété par des cellules qui bordent les voies pulmonaires", "C. Le liquide pulmonaire est éliminé par la trachée", "D. Le liquide pulmonaire est dégluti vers le tube digestif", "E. Le liquide pulmonaire est rejeté dans la cavité amniotique"], a: 0 },
+            { q: "29. Les marqueurs de maturation pulmonaire sont les suivantes, sauf une:", o: ["A. le rapport lécithine/sphingomyéline", "B. SP-A", "C. phosphatidyl-glycérol", "D. lécithine", "E. GASP"], a: 4 },
+            { q: "30. La naissance s'accompagne :", o: ["A. d'une vasodilatation au niveau de la circulation pulmonaire", "B. d'une inhalation de liquide amniotique", "C. d'inhalation de surfactant", "D. la diminution du nombre des bronchioles", "E. la diminution du nombre et de taille des alvéoles"], a: 0 },
+            { q: "31. Quel est l'organe qui commande les muscles respiratoires :", o: ["A. le cerveau", "B. l'encéphale", "C. les poumons", "D. le cœur", "E. le bulbe rachidien"], a: 4 },
+            { q: "32. Le liquide pleural contenu dans les feuillets de la plèvre pulmonaire sert à :", o: ["A. nourrir les poumons", "B. assurer le glissement des deux feuillets de la plèvre", "C. assurer la tension superficielle dans les alvéoles", "D. rejeter les déchets des poumons", "E. maintenir constante la température dans les poumons"], a: 1 },
+            { q: "33. La trachée est un conduit :", o: ["A. Constitué d'une vingtaine d'anneaux cartilagineux incomplets", "B. Constitué une vingtaine d'anneaux cartilagineux complets", "C. Qui passe derrière l'œsophage", "D. Qui a la partie postérieure cartilagineuse", "E. Qui présent cils vibratiles qui sert à augmenter la surface des échanges gazeux"], a: 0 },
+            { q: "34. Les voies aérophores extra pulmonaires sont constituées par :", o: ["A. Trachée", "B. bronches lobaires", "C. bronches segmentaires", "D. bronchioles", "E. alvéoles pulmonaires"], a: 0 },
+            { q: "35. La zone respiratoire est constituées par :", o: ["A. la trachée", "B. les bronches souches", "C. les alvéoles pulmonaires", "D. le larynx", "E. la cavite nasale"], a: 2 },
+            { q: "36. Un acinus (ou lobule pulmonaire primaire) est constitué :", o: ["A. d'une bronchiole terminale donnant naissance à 2 à 6 canaux alvéolaires", "B. d'une bronchiole respiratoire donnant naissance à 3 à 6 canaux alvéolaires", "C. d'un canal alvéolaire", "D. d'un atrium", "E. d'une bronchiole terminale"], a: 0 },
+            { q: "37. L'épithélium alvéolaire se compose :", o: ["A. 2 types de cellules : les pneumocytes de type I et type II", "B. pneumocytes de type I", "C. pneumocytes de type I", "D. cellules Clara", "E. cellules epitheliales cuboidales"], a: 0 },
+            { q: "38. Concernant les pneumocytes de type I, les propositions suivantes sont correctes sauf une :", o: ["A. recouvrent 97% de la paroi alvéolaire", "B. sont aplatis", "C. Leur rôle principal est d'être imperméable aux liquides", "D. Leur rôle principal est d'être perméable aux gaz", "E. rôle important dans les processus inflammatoires pulmonaires"], a: 4 },
+            { q: "39. Concernant les pneumocytes de type II les propositions suivantes sont correctes sauf une :", o: ["A. recouvrent 97% de la paroi alvéolaire", "B. sont des cellules plus volumineuses cubo-cylindriques", "C. produisent et secrètent le surfactant", "D. rôle important dans les processus inflammatoires pulmonaires", "E. ont des capacités de présentation antigénique"], a: 0 },
+            { q: "40. Concernant le squelette fibreux du poumon les propositions suivantes sont correctes sauf une :", o: ["A. consiste en un système continu de tissu conjonctif qui s'étend du hile pulmonaire à la plèvre", "B. est subdivise en un système axial", "C. est subdivise en un système périphérique", "D. est subdivise en un système hilaire", "E. est subdivise en un système parenchymateux"], a: 3 },
+            { q: "41. Concernant la barrière alvéolo-capillaire les propositions suivantes sont correctes sauf une :", o: ["A. est extrêmement mince", "B. present une couche externe de pneumocytes de type I", "C. present une couche externe de pneumocytes de type II", "D. present une membrane basale", "E. present une couche interne, formée par les cellules endothéliales"], a: 2 },
+            { q: "42. Concernant le système circulatoire nutritif pulmonaire les propositions suivantes sont correctes sauf une :", o: ["A. Cette circulation nutritive assure l'oxygénation des poumons", "B. Cette circulation nutritive assure l'apport nutritif aux poumons", "C. Cette circulation est assurée par les vaisseaux bronchiques", "D. Il se fait par l'artère pulmonaire qui pénètre dans les poumons au niveau du hile", "E. Le sang veineux draines dans la veine cave supérieure"], a: 0 },
+            { q: "43. Concernant le système circulatoire fonctionnel pulmonaire les propositions suivantes sont correctes sauf une :", o: ["A. Cette circulation nutritive assure l'oxygénation de tout l'organisme", "B. Il se fait par l'artère pulmonaire qui pénètre dans les poumons", "C. L'artère pulmonaire contient du sang non oxygéné après les échanges", "D. Les veines pulmonaires ramènent du sang oxygéné jusqu'au cœur gauche", "E. Cette circulation est assurée par les vaisseaux bronchiques"], a: 4 },
+            { q: "44. Le surfactant est secrété par :", o: ["A. Les cellules de Clara", "B. Les pneumocytes de type I", "C. Les pneumocytes de type II", "D. Les cellules basales", "E. Les glandes tubulo-acineuses mixtes"], a: 2 },
+            { q: "45. L'arbre bronchique:", o: ["A. Est responsable de la moitié des résistances à l'écoulement de l'air", "B. Les maladies respiratoires touchent essentiellement la zone silencieuse", "C. Présente trois zones, dont le volume est toujours constant", "D. L'alvéole est l'unité fonctionnelle du système respiratoire", "E. L'acinus regroupe à la fois les zones de transition et respiratoire"], a: 3 },
+            { q: "46. Le poumon va jusqu'au :", o: ["A. 4ieme cartilage costal, 6ieme cote axillaire, 10ieme cote en arrière", "B. 6ieme cartilage costal, 7ieme cote axillaire, 10ieme cote en arrière", "C. 5ieme cartilage costal, 7ieme cote axillaire, 10ieme cote en arrière", "D. 4ieme cartilage costal, 7ieme cote axillaire, 11ieme cote en arrière", "E. 6ieme cartilage costal, 7ieme cote axillaire, 12ieme cote en arrière"], a: 1 },
+            { q: "47. La racine pulmonaire comporte:", o: ["A. Eléments fonctionnels: bronches, artères et veines pulmonaires responsable de l'hématose", "B. Eléments fonctionnels: artères et veines bronchiques, nerfs et lymphatiques", "C. Eléments fonctionnels: la trachée, artères et veines bronchique", "D. Eléments fonctionnels: artères et veines bronchiques responsable de l'hématose", "E. Eléments fonctionnels: les sacs alvéolaires"], a: 0 },
+            { q: "48. La racine pulmonaire comporte:", o: ["A. Eléments nourriciers: artères et veines bronchiques, nerfs bronchique et lymphatiques", "B. Eléments fonctionnels: artères et veines bronchiques, nerfs bronchique et lymphatiques", "C. Eléments nourriciers: la trachée, artères et veines bronchique responsable de l'hématose", "D. Eléments nourriciers: artères et veines bronchiques responsable de l'hématose", "E. Eléments nourriciers: les sacs alvéolaires"], a: 0 },
+            { q: "49. Concernant la scissure oblique, les propositions suivantes sont corectes sauf une :", o: ["A. s'étend obliquement vers le bas et vers l'avant", "B. se projeté depuis la 4ieme cote en arrière", "C. se projeté sur la ligne axillaire jusqu'à la 6ieme cote en avant", "D. Appartient aux les deux poumons", "E. s'étend obliquement vers le bas et en haut et vers en arrière"], a: 4 },
+            { q: "50. Sur la face médiale ou médiastinale du poumon gauche ont peut identifiée les empreintes suivantes, sauf une:", o: ["A. L'empreinte du ventricule gauche", "B. l'aorte ascendante", "C. la crosse de l'aorte, l'empreinte de l'artère subclavière gauche", "D. l'empreinte de la veine cave supérieure", "E. l'empreinte de l'aorte thoracique descendante"], a: 3 }
+        ];
+
+        const moduleS2 = [
+            { q: "1. Après la naissance l'obturation de la veine ombilicale constitue :", o: ["A. Le ligament rond du foie", "B. Les artères vésicales supérieures", "C. Le ligament artériel", "D. Les ligaments ombilicaux latéraux", "E. Le ligament veineux d' Arantius"], a: 0 },
+            { q: "2. Le sang artériel qui pénètre à l'intérieur d l'embryon humain de 28 jours est transporté par:", o: ["A. Les veines cardinales antérieures", "B. L'artère ombilicale", "C. Les veines vitellines", "D. L'artère vitelline", "E. Les veines ombilicales"], a: 4 },
+            { q: "3. Anatomiquement au niveau du cœur le nœud sinusal est situé :", o: ["A. Entre l'orifice de la veine cave supérieure et l'orifice du sinus coronaire", "B. Entre l'orifice de la veine cave supérieure et l'atrium droit", "C. Entre l'orifice de la veine cave supérieure et l'orifice de la veine cave inférieure", "D. Entre l'orifice de la veine cave inférieure et l'orifice du sinus coronaire", "E. Entre l'orifice de la veine cave inférieure et l'atrium droit"], a: 1 },
+            { q: "4. Le grand sinus de l'aorte est une dilatation située:", o: ["A. Au dessous des valvules sigmoïdes aortiques", "B. A l'union des segments ascendant et horizontal de la crosse aortique", "C. Au dessus des valvules sigmoïdes aortiques", "D. A l'union du segment horizontal et descendant de l'aorte", "E. Au niveau de l'orifice aortique"], a: 2 },
+            { q: "5. Les éléments anatomiques suivants font partis du territoire vasculaire de l'artère coronaire gauche sauf un:", o: ["A. L'atrium gauche et l'auricule gauche.", "B. Le ventricule gauche (sauf la partie adjacente au sillon inter-ventriculaire postérieure)", "C. La partie du ventricule droit adjacente au sillon inter-ventriculaire antérieur", "D. Le nœud atrio ventriculaire ou d'Aschoff et Tawara", "E. 2/3 antérieurs de la cloison inter-ventriculaire"], a: 3 },
+            { q: "6. La ligne de réflexion du péricarde séreux autour du pédicule veineux se fait comme suit avec une exception:", o: ["A. Sur la face postérieure de la veine cave supérieure", "B. Sur la face antérieure de la veine cave supérieure", "C. Elle croise le flanc droit des veines pulmonaires droites supérieures et inférieures", "D. Elle remonte verticalement sur le flanc gauche des veines pulmonaire droites", "E. Elle descend à droite des veines pulmonaires gauches puis remonte au flanc gauche des deux veines pulmonaires gauches"], a: 0 },
+            { q: "7. En arrière, l'oreillette gauche répond aux structures suivantes sauf une :", o: ["A. A l'œsophage", "B. A la paroi antérieure du sinus oblique", "C. Aux veines pulmonaires", "D. Au nerf phrénique gauche", "E. A la 6ème vertèbre thoracique"], a: 3 },
+            { q: "8. L'irrégularité des cavités cardiaques est due à la présence des élément anatomiques suivants sauf un:", o: ["A. Des muscles papillaires qui sont fixés par leur base à la paroi ventriculaire, leur sommet libre donne attache à des cordages", "B. Des colonnes charnues de deuxième ordre qui sont des bandes musculaires fixées en pont sur les parois", "C. Des muscles pectinés dans l'auricule gauche", "D. De la bandelette modératrice du ventricule droit contenant la branche fasciculaire droite du système excitoconducteur", "E. Des colonnes charnues de troisième ordre, allongées, des simples saillies proches de la base des ventricules"], a: 2 },
+            { q: "9. Le sinus coronaire est un segment veineux dilaté faisant suite à:", o: ["A. La petite veine du cœur. Placé à la face post, se termine en avant de la VCS", "B. La grande veine du cœur. Placé à la face post, se termine dans l'atrium droit, en avant de la VCI", "C. La grande veine du cœur. Placé à la face ant, se termine dans l'atrium droit, en arrière de la VCI", "D. La petite veine du cœur. Placé à la face ant, se termine dans l'atrium gauche, en avant de la VCI", "E. La grande veine du cœur. Placé à la face post, se termine dans l'atrium gauche, en avant de la VCS"], a: 1 },
+            { q: "10. La veine cave supérieure naît de l'union:", o: ["A. Des 2 troncs veineux brachio-céphaliques en arrière du 2ème cartilage costal droit", "B. De la veine jugulaire interne et la veine sub-clavière en arrière de l'extrémité interne de la clavicule", "C. Des 2 troncs veineux brachio-céphaliques en arrière de la 1ere articulation chondrocostale droite", "D. De la veine jugulaire interne et la veine sub-clavière en arrière du 1er cartilage costal droit", "E. Des 2 troncs veineux brachio-céphaliques en arrière du 1er cartilage costal gauche"], a: 2 },
+            { q: "11. Le tronc de la veine cave inférieure nait des deux veines iliaques communes :", o: ["A. Sur le flanc droit de la colonne vertébrale eu regard de la partie supérieure de L4", "B. Sur le flanc gauche de la colonne vertébrale en regard de la partie supérieure de L5", "C. Sur le flanc gauche de la colonne vertébrale en regard de la partie inférieure de L5", "D. Sur le flanc droit de la colonne vertébrale en regard de la partie supérieure de L5", "E. Sur le flanc gauche de la colonne vertébrale en regard du disque intervertébral L4-L5"], a: 3 },
+            { q: "12. Le foyer d'auscultation de l'orifice aortique se situe sur la paroi thoracique au niveau de:", o: ["A. 2eme espace intercostal gauche près du bord du sternum", "B. 3eme espace intercostal gauche près du bord du sternum", "C. 2eme espace intercostal droit près du bord du sternum", "D. 5eme intercostal gauche sur la ligne médio-claviculaire", "E. 3eme espace intercostal droit près du bord du sternum"], a: 2 },
+            { q: "13. A propos de l'artère coronaire gauche, indiquez la proposition exacte :", o: ["A. L'artère coronaire gauche passe entre le tronc pulmonaire et l'auricule gauche", "B. Elle chemine dans le sillon atrio-ventriculaire gauche", "C. Elle donne une artère interventriculaire postérieure", "D. Elle donne l'artère du nœud sino-atrial", "E. Elle donne une artère marginale pour le bord gauche"], a: 0 },
+            { q: "14. A propos des gros vaisseaux, indiquez la proposition exacte :", o: ["A. Les artères coronaires naissent de la portion initiale dilatée de l'aorte: l'isthme", "B. Les branches des troncs supra-aortiques assurent la vascularisation de l'ensemble de la tête, des membres supérieurs et du thorax", "C. Le nerf récurrent gauche décrit une crosse de dehors en dedans sous l'artère subclavière gauche", "D. La veine cave supérieure présente un diamètre plus important que celui de la VCI", "E. Aucune de ces réponses n'est vraie"], a: 4 },
+            { q: "15. Concernant le coeur, indiquez la proposition exacte :", o: ["A. L'orifice atrioventriculaire gauche est fermé par la valve tricuspide", "B. La pointe du coeur est en regard du 4ème/5ème espace intercostal gauche", "C. A la face postérieure de l'oreillette gauche, on retrouve l'empreinte de la trachée", "D. La bandelette ansiforme du VG appartient aux colonnes charnues de 2ème ordre", "E. La face sternocostale du coeur regarde en haut et en avant"], a: 1 },
+            { q: "16. Concernant la vascularisation et l'innervation du coeur, indiquez la proposition exacte :", o: ["A. L'artère coronaire gauche contourne le tronc pulmonaire gauche par la droite", "B. La grande veine coronaire naît dans le sillon atrioventriculaire antérieur gauche", "C. La crosse de l'aorte a une courbure à concavité inférieure qui embrasse le pédicule pulmonaire gauche", "D. L'aorte descendante naît en regard de T5", "E. Le noeud sinusal est localisé dans la paroi de l'OD près du sinus coronaire"], a: 2 },
+            { q: "17. A propos de l'innervation du coeur, indiquez la proposition exacte :", o: ["A. Il existe un système intrinsèque et un système extrinsèque", "B. Le noeud sinusal est situé dans la partie antérieure du coeur", "C. Le noeud d'Aschoff Tawara se poursuit par le faisceau de His droit", "D. Le tronc commun du faisceau de His se divise en 2 branches: supérieure et inférieure", "E. Le tronc commun du faisceau de His se propage dans la face supérieure du ventricule droit"], a: 0 },
+            { q: "18. Concernant les orifices du coeur, indiquez la proposition exacte :", o: ["A. La valvule tricuspide munie de trois valves, relie le ventricule à l'oreillette gauche", "B. Les feuillets des valves AV sont reliés aux piliers des oreillettes par les cordages", "C. Le sinus coronaire s'ouvre dans l'oreillette droite", "D. Les valves sigmoïdes sont formés de trois valvules incontinentes en nids de pigeon", "E. La VCI s'ouvre dans l'oreillette droite par la valvule de Thébésius"], a: 2 },
+            { q: "19. A propos de l'innervation du Coeur, indiquez la proposition exacte :", o: ["A. Le nerf cardiaque parasympathique inférieur nait de l'anse du récurrent.", "B. Le nerf cardiaque sympathique inférieur nait du ganglion cervical inférieur.", "C. Les nerfs cardiaques forment un plexus entre l'aorte et le tronc pulmonaire, en dedans du ligament artériel.", "D. Le SN extrinsèque du coeur module uniquement l'activité ventriculonectrice.", "E. Le faisceau de His n'existe que dans la portion interventriculaire du septum."], a: 2 },
+            { q: "20. Concernant la vascularisation du tissu nodal, toutes les propositions sont exactes sauf une:", o: ["A. La branche droite du faisceau AV est vascularisée par la 2ème artère septale ant", "B. Le faisceau atrio-ventriculaire est exclusivement vascularisé par le système coronaire gauche", "C. Le nœud atrio-ventriculaire est vascularisé par la première artère septale inférieure", "D. Le nœud sino-atrial est vascularisé par l'artère atriale droite sup (2/3) ou gauche sup (1/3)", "E. Les 2/3 ant du septum interventriculaire sont vascularisées par l'IVA"], a: 1 },
+            { q: "21. Concernant le sinus transverse du péricarde, toutes les propositions sont exactes, sauf une:", o: ["A. Il a la forme d'un tunnel concave en avant", "B. Sa paroi antérieure répond à la portion ascendante de l'aorte et au tronc pulmonaire", "C. Sa paroi inférieure répond au plafond de l'atrium droit", "D. A gauche, il s'ouvre dans la grande cavité péricardique sous l'origine de l'artère pulmonaire gauche", "E. A droite, il s'ouvre dans la grande cavité péricardique devant la terminaison de la VCS"], a: 2 },
+            { q: "22. Concernant le sinus oblique du péricarde (cul-de-sac de Haller), toutes exactes, sauf une:", o: ["A. Il se situe entre la terminaison des quatre veines pulmonaires", "B. Sa cavité virtuelle communique avec la grande cavité péricardique", "C. Il répond en avant à l'atrium gauche", "D. Il répond en arrière à l'origine de la bronche principale gauche", "E. Il répond en arrière à l'œsophage thoracique"], a: 3 },
+            { q: "23. L'aorte thoracique donne toutes les collatérales suivantes sauf une :", o: ["A. La totalité des artères intercostales", "B. Les artères phréniques supérieures", "C. Des rameaux bronchiques", "D. Des rameaux œsophagiens", "E. Des rameaux médiastinaux postérieurs"], a: 0 },
+            { q: "24. Concernant la bifurcation du tronc pulmonaire, toutes les propositions sont exactes, sauf une :", o: ["A. Elle se situe à la hauteur de T5", "B. Elle répond à la face postérieure de la portion initiale de la bronche principale gauche", "C. L'arc aortique passe en pont au-dessus de cette bifurcation", "D. Le ligament artériel relie la concavité aortique au bord sup de l'artère pulmonaire gauche", "E. La loge de Wrisberg (plexus cardiaque sous-aortique) est à droite du ligament artériel"], a: 0 },
+            { q: "25. L'artère pulmonaire droite répond en avant à tous les éléments suivants, sauf un:", o: ["A. L'aorte ascendante", "B. La veine cave supérieure", "C. La veine pulmonaire supérieure droite", "D. Le sinus transverse du péricarde", "E. Le nerf phrénique droit"], a: 4 },
+            { q: "26. Les propositions concernant l'orifice artériel pulmonaire sont vraies, sauf une :", o: ["A. il est situé en avant de l'orifice aortique", "B. il est situé dans un plan supérieur à celui de l'orifice aortique", "C. il se projette sur le 3ème cartilage costal gauche", "D. son foyer d'auscultation est situé dans le 2ème espace intercostal gauche", "E. il est muni de deux valvules sigmoïdes antérieure et une valvule postérieure"], a: 4 },
+            { q: "27. Le noeud d'ASCHOFF-TAWARA est situé dans un triangle de KOCH limité par un de ces éléments :", o: ["A. l'orifice de la veine cave inférieure", "B. l'insertion de la valve antérieure de l'orifice tricuspide", "C. l'anneau de VIEUSSENS", "D. l'orifice du sinus veineux coronaire", "E. la crista terminalis"], a: 3 },
+            { q: "28. Les propositions suivantes concernant l'atrium droit sont vraies, sauf une :", o: ["A. la paroi antérieure montre les muscles pectinés", "B. la paroi postero-mediale est formée en totalité par le septum interatrial", "C. il est embryologiquement formé par le sinus veineux et la partie droite de l'atrium primitif", "D. la partie centrale de la paroi latérale proémine en tubercule interveineux du Lower", "E. le limbe de la fosse ovale est embryologiquement formé par le bord libre du septum secundum"], a: 1 },
+            { q: "29. Une des propositions suivantes concernant l'atrium droit est exacte :", o: ["A. il est embryologiquement formé uniquement à partir de l'atrium primitif", "B. les quatre veines pulmonaires se terminent à sa face postérieure", "C. le limbe de la fosse ovale circonscrit primitivement l'ostium primum", "D. la valvule de Thebesius participe à la formation du triangle de KOCH", "E. l'orifice avalvulé de la veine cave inférieure se situe à la paroi inférieure"], a: 3 },
+            { q: "30. Une des propositions suivantes concernant les cavités cardiaques et leurs cloisons est exacte:", o: ["A. le septum atrioventriculaire sépare l'atrium gauche du ventricule droit", "B. le limbe de la fosse ovale est situé dans l'atrium droit", "C. la partie membraneuse du septum interventriculaire est située près de l'apex du coeur", "D. la crête terminale forme la limite entre l'atrium droit et le ventricule droit", "E. le sinus coronaire s'ouvre dans l'atrium gauche"], a: 1 },
+            { q: "31. L'artère coronaire gauche présente un des caractères suivants :", o: ["A. elle se détache de l'aorte en regard de la valvule sigmoïde postérieure", "B. elle glisse ensuite entre l'artère pulmonaire et l'aorte ascendante", "C. l'artère interventriculaire antérieure ne vascularise que le 1/3 antérieur du septum", "D. l'artère circonflexe se termine sans atteindre habituellement le sillon interventriculaire post", "E. elle donne habituellement l'artère du noeud d'ASCHOFF-TAWARA"], a: 3 },
+            { q: "32. Les propositions concernant l'artère coronaire gauche sont vraies sauf une :", o: ["A. elle naît de l'aorte au-dessus du sinus aortique gauche", "B. elle chemine en avant du tronc pulmonaire", "C. ses branches terminales sont le rameau interventriculaire antérieur et circonflexe", "D. L'artère principale du septum interventriculare vascularise le muscle papillaire anterieur", "E. elle vascularise la branche droite du faisceau interventriculaire (de HIS)"], a: 1 },
+            { q: "33. Parmi les artères suivantes, laquelle est branche du rameau circonflexe de la coronaire gauche ?", o: ["A. rameau interventriculaire postérieur", "B. rameau latéral droit", "C. rameau latéral gauche", "D. rameau marginal gauche", "E. rameau du nœud sinu-atrial"], a: 3 },
+            { q: "34. Identifiez la proposition exacte parmi les suivantes :", o: ["A. l'artère infundibulaire gauche est un rameau destiné au ventricule droit", "B. le rameau marginal du bord gauche est une branche du rameau interventriculaire antérieur", "C. la deuxième artère septale antérieure vascularise la branche gauche du faisceau AV", "D. les artères diagonales sont des branches de l'IVA à destinée ventriculaire droite", "E. les artères atriales gauches sont issues de l'artère coronaire droite"], a: 2 },
+            { q: "35. Identifiez la proposition exacte parmi les suivantes :", o: ["A. le noeud sinu-atrial est habituellement vascularisé par une collatérale de la coronaire droite", "B. le noeud AV est classiquement vascularisé par le 2ème rameau septal de l'IVA", "C. la vascularisation du tronc du faisceau de His provient habituellement de la coronaire gauche", "D. la vascularisation de la branche droite de His provient principalement de la coronaire droite", "E. les 2/3 supérieurs du septum sont vascularisés par le rameau interventriculaire postérieur"], a: 0 },
+            { q: "36. Le péricarde présente un des caractères suivants :", o: ["A. adhérence phréno-péricardique au niveau de la foliole postérieure gauche", "B. l'orifice droit du sinus transverse de THEILE est limité par le tronc pulmonaire", "C. l'orifice gauche du sinus transverse de THEILE est limité par l'aorte", "D. le sinus transverse de THEILE est en rapport en avant avec le pédicule artériel du coeur", "E. le sinus oblique est en rapport en avant avec l'atrium droit"], a: 3 },
+            { q: "37. Le péricarde présente un des caractères suivants :", o: ["A. le plancher du sinus transverse de THEILE est formé par l'artère pulmonaire droite", "B. l'orifice droit du sinus transverse de THEILE est limité par le tronc pulmonaire", "C. l'orifice gauche du sinus transverse de THEILE est limité par l'aorte", "D. le péricarde adhère à la foliole antérieure du centre phrénique", "E. l'angle inférieur gauche de l'aire péricardique se projette en regard du 6e cartilage costal"], a: 0 },
+            { q: "38. Le système cardio-necteur du coeur présente ces caractères sauf un:", o: ["A. le noeud sinu-atrial est habituellement le lieu de commande du rythme cardiaque", "B. le noeud sinu-atrial est vascularisé dans la majorité des cas par l'artère coronaire gauche", "C. le noeud AV appartient habituellement au territoire de l'artère coronaire droite", "D. la branche droite du faisceau de HIS parcourt la bandelette septo-marginale", "E. la branche droite du faisceau AV appartient au territoire de l'artère coronaire gauche"], a: 1 },
+            { q: "39. Identifiez la proposition exacte concernant le development du cœur :", o: ["A. pendant la vie foetale il existe une communication inter-auriculaire physiologique", "B. le septum primum cloisonne l'orifice atrioventriculaire primitif", "C. le cloisonnement du coeur s'effectue au cours du 3ème trimestre de grossesse", "D. le septum inferius est spiralé", "E. le foramen ovale est une communication inter-ventriculaire"], a: 0 },
+            { q: "40. Le 4ème arc aortique droit :", o: ["A. donne l'artère pulmonaire droite", "B. participe à la formation de l'artère sous-clavière droite", "C. disparaît", "D. correspond à la carotide interne", "E. vascularise le cerveau antérieur par sa branche cérébrale antérieure"], a: 1 },
+            { q: "41. Le 3ème arc aortique droit :", o: ["A. donne l'artère pulmonaire droite", "B. participe à la formation de l'artère sous-clavière droite", "C. disparaît", "D. donne la carotide interne droite", "E. vascularise le cerveau postérieur droit"], a: 3 },
+            { q: "42. Au cours du développement du coeur, pendant le 2ème mois :", o: ["A. le foramen ovale fait communiquer les deux ventricules", "B. l'ostium secundum est un orifice du septum intermedium", "C. la cloison spiralée du bulbe artériel place le tronc aortique à gauche et pulmonaire à droite", "D. l'absence de pars membranacea est à l'origine d'une communication interauriculaire", "E. le cloisonnement du coeur est incomplet; il ne sera complet qu'à la naissance"], a: 4 },
+            { q: "43. Identifiez la proposition exacte concernant l'évolution la formation du cœur :", o: ["A. le tube endocardique subit une rotation vers la gauche et l'avant pour amener l'oreillette en position dorsale", "B. la communication interauriculaire fœtale est pathologique par le trou de BOTAL", "C. le septum secundum forme la valve du foramen ovale", "D. le foramen interventriculaire se ferme à cause de la pression du ventricule gauche", "E. le septum secundum auriculaire et le septum inferius ventriculaire sont perpendiculaires"], a: 0 },
+            { q: "44. Quelles proposition concernant la formation du système veineux est exacte ?", o: ["A. le sinus veineux est incorporé au cours du 2ème mois à l'oreillette gauche", "B. la veine ombilicale gauche disparaît", "C. la VCS est formée à partir des veines cardinales antérieure et commune gauche", "D. le canal d'Arantius ramène au coeur le sang de la veine ombilicale droite", "E. la veine porte dérive de la veine vitelline droite"], a: 4 },
+            { q: "45. Concernant les cavités ventriculaires:", o: ["A. La chambre de réception du VD est située en regard de l'ostium de l'artère pulmonaire", "B. Les chambres du VD sont séparées par la trabécule septomarginale et la valvule septale", "C. La chambre d'éjection du VD est située en regard de l'ostium AV droit", "D. La chambre de réception du VG est située en regard de l'ostium aortique", "E. La chambre d'éjection du VG est située en regard de l'ostium AV gauche"], a: 1 },
+            { q: "46. Concernant l'ostium de l'aorte:", o: ["A. Il est situe au-dessous de l'ostium atrio-ventriculaire gauche", "B. Il est situe à droite de l'ostium atrio-ventriculaire gauche", "C. Il regarde en haut, à gauche et en arrière", "D. Il est pourvu de deux valvules semi-lunaires", "E. Les valvules sont cupuliformes, à concavité inferieure"], a: 1 },
+            { q: "47. Identifiez l'affirmation correcte concernant la veine cave inférieure:", o: ["A. La VCI naît de la réunion des veines iliaques internes", "B. Elle reçoit les veines lombaires", "C. Par sa face antérieure, elle reçoit la veine mésentérique supérieure", "D. La veine gonadique gauche est une branche collatérale afférente", "E. La VCI traverse le diaphragme par un orifice musculaire"], a: 1 },
+            { q: "48. Les propositions suivantes concernant l'orifice artériel pulmonaire sont vraies sauf une :", o: ["A. il est situé dans un plan supérieur à celui de l'orifice aortique", "B. il se projette sur le 3ème cartilage costal gauche", "C. il est situé en avant et à droite de l'orifice aortique", "D. son foyer d'auscultation est situé dans le 2ème espace intercostal gauche", "E. il est muni de deux valvules semi-lunaires post et d'une valvule antérieure"], a: 2 },
+            { q: "49. Concernant le cœur, les propositions suivantes sont exactes, sauf une:", o: ["A. Le cœur est situé dans le médiastin moyen", "B. Le cœur est conique à base antérieure", "C. Son grand axe est oblique en avant, à gauche et en bas", "D. La partie horizontale du bord droit correspond au ventricule droit", "E. L'orifice pulmonaire est situé en avant et à gauche de l'orifice aortique"], a: 3 },
+            { q: "50. Concernant l'atrium droit, les propositions suivantes sont exactes, sauf une:", o: ["A. Sa face latérale est marquée par les muscles pectinés", "B. Sa face médiale présente la fosse ovale", "C. Le limbus de la fosse ovale se trouve en haut, en avant et en bas de la fosse ovale", "D. L'orifice de la VCI se trouve en avant et à gauche de l'orifice du sinus coronaire", "E. Les bords droits des ostia caves sont unis par la crête terminale"], a: 2 }
+        ];
+
+        const moduleEmbryo = [
+            { q: "1. Le développement des oreillettes NE comprend PAS :", o: ["A. Le septum primum", "B. Le septum secundum", "C. Le septum spurium", "D. L'ostium primum", "E. Le septum interventriculaire"], a: 4 },
+            { q: "2. La première anastomose veineuse s'établit entre :", o: ["A. Les veines ombilicales", "B. Les veines vitellines", "C. Les veines subcardinales", "D. Les veines supracardinales", "E. Les veines cardinales antérieures"], a: 4 },
+            { q: "3. La vascularisation de l'intestin moyen est réalisée par :", o: ["A. L'artère gastrique gauche", "B. L'artère splénique", "C. L'artère mésentérique supérieure", "D. L'artère mésentérique inférieure", "E. L'artère rectale supérieure"], a: 2 },
+            { q: "4. Les artères vitellines du sac vitellin sont à l'origine de la circulation artérielle :", o: ["A. De la gonade", "B. Du tractus gastro-intestinal", "C. Du rein", "D. De la moelle épinière", "E. De la glande surrénale"], a: 1 },
+            { q: "5. Le système veineux vitellin NE forme PAS :", o: ["A. La veine cave inférieure", "B. La veine cave supérieure", "C. La veine mésentérique supérieure", "D. La veine porte", "E. La veine splénique"], a: 1 },
+            { q: "6. Le stade pseudoglandulaire de développement des poumons se produit :", o: ["A. Entre les semaines 6 et 16", "B. Entre les semaines 16 et 28", "C. Entre les jours 26 et 6 semaines", "D. Entre les semaines 36 et la naissance", "E. Entre les semaines 28 et 36"], a: 0 },
+            { q: "7. Les affirmations suivantes concernant le développement du coeur sont vraies SAUF une :", o: ["A. Le tube cardiaque primitif est subdivisé par une série de constrictions et de dilatations", "B. En commençant par l'extrémité supérieure (afférente), il y a le sinus veineux", "C. Crânialement au sinus veineux, les deux cavités suivantes sont l'oreillette primitive et le ventricule", "D. Le ventricule est séparé du bulbe du coeur par le sillon bulbo-ventriculaire", "E. Les sinus du coeur se forment par rupture du mésocarde dorsal"], a: 1 },
+            { q: "8. La partie thoracique de la trachée est en rapport en arrière avec :", o: ["A. L'arc aortique", "B. L'artère carotide commune gauche", "C. Les nerfs du plexus cardiaque", "D. Le thymus", "E. L'œsophage"], a: 4 },
+            { q: "9. La veine cave inférieure N'est PAS formée par :", o: ["A. Le système cardinal antérieur", "B. Le système supracardinal", "C. Le système vitellin", "D. Le système ombilical", "E. Le système subcardinal"], a: 0 },
+            { q: "10. Le premier arc aortique devient :", o: ["A. L'artère carotide interne", "B. L'artère stapédienne", "C. L'artère pulmonaire", "D. L'artère maxillaire", "E. L'artère subclavière"], a: 3 },
+            { q: "11. Les veines azygos ont leur origine dans :", o: ["A. Les veines cardinales antérieures", "B. Les veines subcardinales", "C. Les veines supracardinales", "D. Les veines cardinales postérieures", "E. Les veines ombilicales"], a: 2 },
+            { q: "12. Après la formation définitive du coeur, la veine cave supérieure finit dans :", o: ["A. L'oreillette gauche", "B. Le ventricule gauche", "C. Le ventricule droit", "D. L'oreillette droite", "E. La veine porte"], a: 3 },
+            { q: "13. Le dernier stade de développement des poumons est le stade :", o: ["A. Alvéolaire", "B. Sacculaire", "C. Embryonnaire", "D. Canaliculaire", "E. Pseudoglandulaire"], a: 0 },
+            { q: "14. Le médiastin antérieur contient :", o: ["A. Les vaisseaux thoraciques internes", "B. Le péricarde", "C. Les vaisseaux pulmonaires", "D. L'aorte thoracique", "E. Les lymphonœuds latéro-péricardiques"], a: 0 },
+            { q: "15. Le 4ème arc aortique devient :", o: ["A. L'artère pulmonaire", "B. La crosse aortique", "C. Le canal artériel", "D. L'artère sous-clavière droite", "E. L'artère carotide externe"], a: 1 },
+            { q: "16. L'extrémité supérieure du tube cardiaque primitif est représentée par :", o: ["A. Le sinus veineux", "B. L'oreillette primitive", "C. Le ventricule primitif", "D. Le bulbe artériel", "E. Le tronc artériel"], a: 4 },
+            { q: "17. La tétralogie de Fallot NE comprend PAS :", o: ["A. Une communication interventriculaire (CIV)", "B. Une sténose de l'artère pulmonaire", "C. Un défaut du septum inter-atrial embryonnaire (CIA)", "D. Une aorte à cheval sur le septum", "E. Une hypertrophie du ventricule droit"], a: 2 },
+            { q: "18. La bronche lobaire supérieure droite se divise en :", o: ["A. 2 bronches segmentaires : apicale et basale", "B. 3 bronches segmentaires : apicale, ventrale (antérieure), et dorsale (postérieure)", "C. 4 bronches segmentaires", "D. 2 bronches segmentaires : médiale et latérale", "E. 3 bronches segmentaires : supérieure, moyenne et inférieure"], a: 1 },
+            { q: "19. Concernant les poumons, la base du poumon droit est séparée du foie par :", o: ["A. Le péricarde", "B. La plèvre pariétale costale", "C. Le diaphragme", "D. Le péritoine", "E. L'estomac"], a: 2 },
+            { q: "20. La face médiastinale du poumon droit se caractérise par :", o: ["A. L'empreinte de la crosse aortique", "B. Dans le hile, la bronche souche est en avant de l'artère pulmonaire", "C. L'empreinte du ventricule gauche", "D. L'absence de ligament pulmonaire", "E. Le passage de la veine hémi-azygos"], a: 1 }
+        ];
+
+        const modulesInfo = [
+            { id: 'cardio', title: "Système Cardio-Vasculaire", count: 50, color: "blue", data: moduleCardio },
+            { id: 'respi', title: "Système Respiratoire", count: 50, color: "emerald", data: moduleRespi },
+            { id: 's2', title: "Examen S2 Anatomie", count: 50, color: "indigo", data: moduleS2 },
+            { id: 'embryo', title: "Inédit: Embryologie & Anat", count: 20, color: "orange", data: moduleEmbryo }
+        ];
+
+        // --- COMPOSANT QUIZ (gère un module) ---
+        function Quiz({ module, goHome }) {
+            const quizData = module.data;
+            const colorClass = module.color;
+            
+            // Tailwind class mappings based on color prop
+            const theme = {
+                blue: { bg: 'bg-blue-600', hover: 'hover:bg-blue-700', text: 'text-blue-600', light: 'bg-blue-50', border: 'border-blue-600', ring: 'ring-blue-500' },
+                emerald: { bg: 'bg-emerald-600', hover: 'hover:bg-emerald-700', text: 'text-emerald-600', light: 'bg-emerald-50', border: 'border-emerald-600', ring: 'ring-emerald-500' },
+                indigo: { bg: 'bg-indigo-600', hover: 'hover:bg-indigo-700', text: 'text-indigo-600', light: 'bg-indigo-50', border: 'border-indigo-600', ring: 'ring-indigo-500' },
+                orange: { bg: 'bg-orange-500', hover: 'hover:bg-orange-600', text: 'text-orange-500', light: 'bg-orange-50', border: 'border-orange-500', ring: 'ring-orange-500' }
+            }[colorClass];
+
+            const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+            const [answers, setAnswers] = useState({});
+            const [showResults, setShowResults] = useState(false);
+
+            const currentQuestion = quizData[currentQuestionIndex];
+            const hasAnswered = answers[currentQuestionIndex] !== undefined;
+
+            const handleSelectAnswer = (optionIndex) => {
+                if (hasAnswered) return;
+                setAnswers(prev => ({ ...prev, [currentQuestionIndex]: optionIndex }));
+            };
+
+            const handleNext = () => {
+                if (currentQuestionIndex < quizData.length - 1) {
+                    setCurrentQuestionIndex(prev => prev + 1);
+                } else {
+                    setShowResults(true);
+                }
+            };
+
+            const handlePrevious = () => {
+                if (currentQuestionIndex > 0) setCurrentQuestionIndex(prev => prev - 1);
+            };
+
+            const calculateScore = () => {
+                let score = 0;
+                Object.keys(answers).forEach(index => {
+                    if (answers[index] === quizData[index].a) score++;
+                });
+                return score;
+            };
+
+            const restart = () => {
+                setCurrentQuestionIndex(0);
+                setAnswers({});
+                setShowResults(false);
+            };
+
+            if (showResults) {
+                const score = calculateScore();
+                const percentage = Math.round((score / quizData.length) * 100);
+
+                return (
+                    <div className="py-8 px-4 text-slate-800 animate-fade-in w-full max-w-3xl mx-auto">
+                        <button onClick={goHome} className="mb-6 inline-flex items-center gap-2 text-slate-500 hover:text-slate-800 font-medium">
+                            <IconHome /> Retour au menu
+                        </button>
+                        
+                        <div className={`bg-white rounded-2xl shadow-sm border border-slate-200 p-8 mb-8 text-center border-t-4 border-${colorClass}-500`}>
+                            <h2 className="text-3xl font-bold mb-2">Résultats : {module.title}</h2>
+                            <div className={`text-6xl font-black ${theme.text} mb-4`}>{score} / {quizData.length}</div>
+                            <p className="text-lg text-slate-600 font-medium mb-8">Score: {percentage}% de bonnes réponses</p>
+                            
+                            <div className="flex justify-center gap-4 flex-wrap">
+                                <button onClick={restart} className="inline-flex items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white font-semibold py-3 px-6 rounded-lg transition-colors">
+                                    <IconRotate /> Recommencer
+                                </button>
+                                <button onClick={goHome} className="inline-flex items-center gap-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 font-semibold py-3 px-6 rounded-lg transition-colors">
+                                    <IconHome /> Changer de module
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="space-y-6 pb-12">
+                            {quizData.map((question, qIndex) => {
+                                const userAnswer = answers[qIndex];
+                                const isCorrect = userAnswer === question.a;
+                                const isUnanswered = userAnswer === undefined;
+
+                                return (
+                                    <div key={qIndex} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                                        <h3 className="text-lg font-semibold mb-4 text-slate-800 flex gap-3">
+                                            {isCorrect ? <IconCheckCircle className="text-green-500 flex-shrink-0 mt-1" /> : <IconXCircle className="text-red-500 flex-shrink-0 mt-1" />}
+                                            <span>{question.q}</span>
+                                        </h3>
+                                        
+                                        <div className="space-y-2 ml-9">
+                                            {question.o.map((option, oIndex) => {
+                                                let bgC = "bg-slate-50", borderC = "border-slate-200", textC = "text-slate-700";
+                                                if (oIndex === question.a) {
+                                                    bgC = "bg-green-50"; borderC = "border-green-300"; textC = "text-green-800 font-semibold";
+                                                } else if (oIndex === userAnswer && !isCorrect) {
+                                                    bgC = "bg-red-50"; borderC = "border-red-300"; textC = "text-red-800";
+                                                }
+
+                                                return (
+                                                    <div key={oIndex} className={`p-3 rounded-lg border ${bgC} ${borderC} ${textC} flex items-center justify-between`}>
+                                                        <span>{option}</span>
+                                                        {oIndex === question.a && <IconCheck className="text-green-600" />}
+                                                        {oIndex === userAnswer && !isCorrect && <IconX className="text-red-600" />}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                        {isUnanswered && <p className="text-amber-600 mt-3 ml-9 text-sm font-medium">Question laissée sans réponse.</p>}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                );
+            }
+
+            const progress = ((currentQuestionIndex + 1) / quizData.length) * 100;
+            const isLastQuestion = currentQuestionIndex === quizData.length - 1;
+
+            return (
+                <div className="py-8 px-4 flex flex-col font-sans text-slate-800 max-w-2xl w-full mx-auto animate-fade-in">
+                    <button onClick={goHome} className="mb-4 inline-flex items-center gap-2 text-slate-500 hover:text-slate-800 font-medium self-start">
+                        <IconHome /> Quitter
+                    </button>
+
+                    <div className="mb-6">
+                        <div className="flex justify-between items-end mb-2">
+                            <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">
+                                Question {currentQuestionIndex + 1} / {quizData.length}
+                            </span>
+                            <span className="text-sm font-medium text-slate-400">
+                                {Object.keys(answers).length} complétées
+                            </span>
+                        </div>
+                        <div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden">
+                            <div className={`h-full ${theme.bg} transition-all duration-300 ease-out`} style={{ width: `${progress}%` }}></div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col overflow-hidden mb-6">
+                        <div className="p-6 sm:p-8">
+                            <h2 className="text-xl sm:text-2xl font-bold text-slate-800 mb-8 leading-snug">
+                                {currentQuestion.q}
+                            </h2>
+                            
+                            <div className="space-y-3">
+                                {currentQuestion.o.map((option, index) => {
+                                    const isSelected = answers[currentQuestionIndex] === index;
+                                    const isCorrectAnswer = currentQuestion.a === index;
+                                    
+                                    let btnStyle = "border-slate-100 bg-white hover:border-slate-300 hover:bg-slate-50 text-slate-700";
+                                    let circleStyle = "border-slate-300";
+                                    let IconC = null;
+
+                                    if (hasAnswered) {
+                                        if (isCorrectAnswer) {
+                                            btnStyle = "border-green-500 bg-green-50 text-green-900 shadow-sm ring-1 ring-green-500";
+                                            circleStyle = "border-transparent bg-green-500 text-white";
+                                            IconC = IconCheck;
+                                        } else if (isSelected && !isCorrectAnswer) {
+                                            btnStyle = "border-red-500 bg-red-50 text-red-900 shadow-sm ring-1 ring-red-500";
+                                            circleStyle = "border-transparent bg-red-500 text-white";
+                                            IconC = IconX;
+                                        } else {
+                                            btnStyle = "border-slate-100 bg-slate-50 text-slate-400 opacity-60";
+                                            circleStyle = "border-slate-200";
+                                        }
+                                    }
+
+                                    return (
+                                        <button key={index} onClick={() => handleSelectAnswer(index)} disabled={hasAnswered}
+                                            className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-200 ${btnStyle} ${!hasAnswered ? 'cursor-pointer' : 'cursor-default'}`}>
+                                            <div className="flex items-center gap-4">
+                                                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${circleStyle}`}>
+                                                    {IconC ? <IconC className="w-4 h-4" /> : null}
+                                                </div>
+                                                <span className="font-medium">{option}</span>
+                                            </div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            
+                            {hasAnswered && (
+                                <div className={`mt-6 p-4 rounded-lg flex items-start gap-3 ${answers[currentQuestionIndex] === currentQuestion.a ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                    {answers[currentQuestionIndex] === currentQuestion.a ? (
+                                        <><IconCheckCircle className="flex-shrink-0 mt-0.5" /> <div><p className="font-bold">Bonne réponse !</p></div></>
+                                    ) : (
+                                        <><IconXCircle className="flex-shrink-0 mt-0.5" />
+                                        <div>
+                                            <p className="font-bold">Mauvaise réponse</p>
+                                            <p className="text-sm mt-1 opacity-90">La bonne réponse était l'option {String.fromCharCode(65 + currentQuestion.a)}.</p>
+                                        </div></>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="flex justify-between items-center gap-4 pb-12">
+                        <button onClick={handlePrevious} disabled={currentQuestionIndex === 0}
+                            className={`flex-1 flex justify-center items-center py-4 px-6 rounded-xl font-semibold transition-all ${currentQuestionIndex === 0 ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 shadow-sm'}`}>
+                            <IconChevronLeft /> Précédent
+                        </button>
+                        
+                        <button onClick={handleNext}
+                            className={`flex-1 flex justify-center items-center py-4 px-6 rounded-xl font-semibold text-white shadow-md transition-all ${hasAnswered ? theme.bg + ' ' + theme.hover : 'bg-slate-300 hover:bg-slate-400'}`}>
+                            {isLastQuestion ? 'Terminer' : 'Suivant'} {!isLastQuestion && <IconChevronRight />}
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        // --- COMPOSANT PRINCIPAL (App) ---
+        function App() {
+            const [selectedModule, setSelectedModule] = useState(null);
+
+            if (selectedModule) {
+                return <Quiz module={selectedModule} goHome={() => setSelectedModule(null)} />;
+            }
+
+            return (
+                <div className="min-h-screen p-4 sm:p-8 flex flex-col items-center justify-center">
+                    <div className="max-w-4xl w-full">
+                        <div className="text-center mb-12">
+                            <div className="inline-block p-4 bg-white rounded-2xl shadow-sm mb-4">
+                                <IconAward size={48} className="text-slate-800" />
+                            </div>
+                            <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight mb-4">Révisions Anatomie</h1>
+                            <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+                                Choisissez un module pour commencer votre entraînement. Tous les QCM sont disponibles hors-ligne avec correction immédiate.
+                            </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {modulesInfo.map((mod) => (
+                                <button key={mod.id} onClick={() => setSelectedModule(mod)}
+                                    className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md border border-slate-200 transition-all text-left flex flex-col group relative overflow-hidden">
+                                    <div className={`absolute top-0 left-0 w-2 h-full bg-${mod.color}-500`}></div>
+                                    <div className="pl-4">
+                                        <div className={`text-${mod.color}-600 font-bold text-sm mb-2 uppercase tracking-wide`}>Module</div>
+                                        <h2 className="text-2xl font-bold text-slate-800 mb-2 group-hover:text-slate-900">{mod.title}</h2>
+                                        <div className="flex items-center text-slate-500 gap-2 mb-6">
+                                            <IconCheckCircle className="w-5 h-5" />
+                                            <span>{mod.count} questions QCS</span>
+                                        </div>
+                                        <div className={`mt-auto inline-flex items-center font-semibold text-${mod.color}-600`}>
+                                            Lancer le test <IconChevronRight />
+                                        </div>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+    
+    <style>
+        .animate-fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        /* Safe area for newer iPads/iPhones */
+        body { padding-bottom: env(safe-area-inset-bottom); }
+    </style>
+</body>
+</html>
